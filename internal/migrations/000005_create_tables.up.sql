@@ -1,0 +1,1 @@
+insert into analytics.analyst(*) values('admin', '123456');

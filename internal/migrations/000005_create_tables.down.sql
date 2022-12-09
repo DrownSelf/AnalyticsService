@@ -1,0 +1,1 @@
+delete from analyst where username='admin';
