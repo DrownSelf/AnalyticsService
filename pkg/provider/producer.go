@@ -12,8 +12,8 @@ type Producer struct {
 	Writer *kafka.Conn
 }
 
-func NewProducer(topic string) (*Producer, error) {
-	conn, err := kafka.DialLeader(context.Background(), "tcp", "localhost:9093", topic, 0)
+func NewProducer(topic string, connection string) (*Producer, error) {
+	conn, err := kafka.DialLeader(context.Background(), "tcp", connection, topic, 0)
 	if err != nil {
 		return nil, err
 	}

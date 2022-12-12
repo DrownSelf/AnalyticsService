@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/tls"
 	"database/sql"
-	"fmt"
 	"net"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/gofiber/fiber/v2"
 
+	"github.com/DrownSelf/AnalyticsService/internal/configs"
 	"github.com/DrownSelf/AnalyticsService/internal/entities"
 	"github.com/DrownSelf/AnalyticsService/internal/migrations"
 )
@@ -18,13 +19,13 @@ type AnalyticsRepository struct {
 	clickhouse *sql.DB
 }
 
-func NewAnalyticsRepo() (*AnalyticsRepository, error) {
+func NewAnalyticsRepo(config *configs.Config) (*AnalyticsRepository, error) {
 	db := clickhouse.OpenDB(&clickhouse.Options{
-		Addr: []string{"localhost:9000"},
+		Addr: []string{config.ClickHouseConnection},
 		Auth: clickhouse.Auth{
-			Database: "analytics",
-			Username: "drown",
-			Password: "150869",
+			Database: config.ClickHouseDbName,
+			Username: config.ClickHouseUserName,
+			Password: config.ClickHousePassword,
 		},
 		TLS: &tls.Config{
 			InsecureSkipVerify: true,
@@ -32,10 +33,6 @@ func NewAnalyticsRepo() (*AnalyticsRepository, error) {
 		DialContext: func(ctx context.Context, addr string) (net.Conn, error) {
 			var d net.Dialer
 			return d.DialContext(ctx, "tcp", addr)
-		},
-		Debug: true,
-		Debugf: func(format string, v ...interface{}) {
-			fmt.Println(format, v)
 		},
 		Settings: clickhouse.Settings{
 			"max_execution_time": 60,
@@ -75,25 +72,25 @@ func (a *AnalyticsRepository) DestroyRepository(ctx context.Context) error {
 	}
 }
 
-func (a *AnalyticsRepository) AddOrderLog(ctx context.Context, timeOfOrder time.Time, region string) error {
+func (a *AnalyticsRepository) AddOrderLog(ctx context.Context, log entities.OrderLog) error {
 	query := `insert into orders(place, orderDate) values ($1, $2);`
-	if _, err := a.clickhouse.ExecContext(ctx, query, timeOfOrder, region); err != nil {
+	if _, err := a.clickhouse.ExecContext(ctx, query, log.OrderTimeLog, log.EndPlace); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a *AnalyticsRepository) AddUserLog(ctx context.Context, timeOfRegistration time.Time) error {
+func (a *AnalyticsRepository) AddUserLog(ctx context.Context, log entities.UserLog) error {
 	query := `insert into users(registrationDate) values ($1)`
-	if _, err := a.clickhouse.ExecContext(ctx, query, timeOfRegistration); err != nil {
+	if _, err := a.clickhouse.ExecContext(ctx, query, log.RegistrationLog); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a *AnalyticsRepository) AddDriverLog(ctx context.Context, timeOfRegistration time.Time) error {
+func (a *AnalyticsRepository) AddDriverLog(ctx context.Context, log entities.DriverLog) error {
 	query := `insert into drivers(registrationDate) values ($1)`
-	if _, err := a.clickhouse.ExecContext(ctx, query, timeOfRegistration); err != nil {
+	if _, err := a.clickhouse.ExecContext(ctx, query, log.RegistrationLog); err != nil {
 		return err
 	}
 	return nil
@@ -157,4 +154,16 @@ func (a *AnalyticsRepository) GetOrderStats(ctx context.Context) ([]entities.Ord
 		orderStats = append(orderStats, statistic)
 	}
 	return orderStats, nil
+}
+
+func (a *AnalyticsRepository) CheckAdminAccount(ctx context.Context, username string, password string) error {
+	query := `select * from analyst where password = $1 and username = $2`
+	_, err := a.clickhouse.QueryContext(ctx, query, password, username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			err = fiber.NewError(fiber.StatusBadRequest, "Wrong username or password")
+		}
+		return err
+	}
+	return nil
 }
