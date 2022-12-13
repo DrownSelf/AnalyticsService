@@ -10,19 +10,17 @@ import (
 
 type Consumer[T comparable] struct {
 	reader *kafka.Reader
-	dialer *kafka.Dialer
-	topic  string
 }
 
-func (c *Consumer[T]) CreateConnection(connections []string) error {
+func (c *Consumer[T]) CreateConnection(connections []string, dialer *kafka.Dialer, topic string) error {
 	c.reader = kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   connections,
-		Topic:     c.topic,
+		Topic:     topic,
 		Partition: 0,
 		MinBytes:  10e3,
 		MaxBytes:  10e6,
 		MaxWait:   time.Millisecond * 10,
-		Dialer:    c.dialer,
+		Dialer:    dialer,
 	})
 	if err := c.reader.SetOffset(0); err != nil {
 		return err

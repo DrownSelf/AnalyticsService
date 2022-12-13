@@ -1,2 +1,2 @@
 .idea
-./internal/configs/connection.env
+internal/configs/connection.env

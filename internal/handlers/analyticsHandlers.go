@@ -22,6 +22,10 @@ type Handler struct {
 	service AnalyticsService
 }
 
+func NewHandler(service AnalyticsService) *Handler {
+	return &Handler{service: service}
+}
+
 func (h *Handler) LogIn(ctx *fiber.Ctx) error {
 	var request LogInRequest
 	if err := ctx.BodyParser(&request); err != nil {

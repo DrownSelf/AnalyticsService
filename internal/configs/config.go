@@ -12,6 +12,7 @@ type Config struct {
 	ClickHouseUserName   string
 	ClickHousePassword   string
 	ClickHouseDbName     string
+	ApiPort              string
 }
 
 func LoadConnectionConfig() (*Config, error) {
@@ -26,5 +27,6 @@ func LoadConnectionConfig() (*Config, error) {
 	config.ClickHouseDbName = os.Getenv("CH_DB_NAME")
 	config.ClickHouseUserName = os.Getenv("CH_USERNAME")
 	config.ClickHousePassword = os.Getenv("CH_PASSWORD")
+	config.ApiPort = os.Getenv("API_PORT")
 	return &config, err
 }
